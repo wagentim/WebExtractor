@@ -1,4 +1,4 @@
-package de.wagentim.db.handler;
+package de.wagentim.db;
 
 import java.util.List;
 
@@ -10,7 +10,6 @@ import javax.persistence.TypedQuery;
 import org.apache.http.NameValuePair;
 import org.apache.http.cookie.ClientCookie;
 
-import de.wagentim.connect.PersisCookie;
 import de.wagentim.webs.utils.TextUtils;
 import de.wagentim.webs.utils.Utils;
 

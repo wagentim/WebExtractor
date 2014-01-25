@@ -1,4 +1,4 @@
-package de.wagentim.connect;
+package de.wagentim.db;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -3,33 +3,27 @@ package de.wagentim.webs.download;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.apache.http.HttpStatus;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 
-import de.wagentim.connect.Connect;
-import de.wagentim.connect.Connection;
+import de.wagentim.connect.RequestFactory;
+import de.wagentim.qlogger.logger.Log;
 import de.wagentim.webs.utils.Utils;
 
-public class UCDisk extends AbstractWebSite{
+public class UCDisk extends AbstractWebsite{
 	
-	private final int client_id = 68;
+	private final int client_id = 54;
 	private final String userName = "bhwerbung@googlemail.com";
 	private final String psw = "huang78";
-	
 	private static final String NAME = "uc_disk";
-	
-	protected RequestConfig rConfig = null;
 	
 	public UCDisk()
 	{
-		super();
+		super(NAME);
 	}
 	
 	@Override
-	public URI getLoginURI()
+	public URI getBasicURI()
 	{
 		try {
 			return new URIBuilder()
@@ -48,33 +42,32 @@ public class UCDisk extends AbstractWebSite{
 		return null;
 	}
 	
-	public static void main(String[] args)
-	{
-		WebSite uc = new UCDisk();
-		uc.fetch();
-	}
-
 	@Override
-	public void fetch() {
+	public void run() {
 		
-		CloseableHttpResponse response = Connect.getNewConnection().getResponse(Connection.GET, getLoginURI(), getLocalRequestConfig());
+		log.log("Request Basic URI: " + getBasicURI().toString(), Log.LEVEL_INFO);
 		
-		if( response.getStatusLine().getStatusCode() != HttpStatus.SC_OK )
+		HttpRequestBase get = RequestFactory.getRequest(RequestFactory.TYPE_GET);
+		
+		if( null == get )
 		{
+			log.log("The Request from Request Factory is NULL", Log.LEVEL_CRITICAL_ERROR);
 			return;
 		}
+		
+		get.setURI(getBasicURI());
+		
+		log.log("Set Headers...", Log.LEVEL_INFO);
+		
+		addRequestHeaders(get);
 		
 	}
 	
 	@Override
-	public RequestConfig getLocalRequestConfig()
+	public void addRequestHeaders(HttpRequestBase request)
 	{
-		if( null == rConfig )
-		{
-			rConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.).build();
-		}
-		
-		return rConfig;
+		request.addHeader("Host", "api.open.uc.cn");
+		request.addHeader("Referer", "http://yun.uc.cn/cloud/login");
 	}
 
 }
