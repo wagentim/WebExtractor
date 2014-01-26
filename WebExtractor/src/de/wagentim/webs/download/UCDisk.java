@@ -4,15 +4,22 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicHeader;
 import org.json.JSONObject;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import de.wagentim.db.CookieHandler;
+import de.wagentim.db.PersisCookie;
 import de.wagentim.qlogger.logger.Log;
+import de.wagentim.webs.utils.Utils;
 
 public class UCDisk extends AbstractWebsite{
 	
@@ -53,6 +60,12 @@ public class UCDisk extends AbstractWebsite{
 		
 		clearCookie();
 		
+		processAll();
+		
+	}
+
+	private void processAll() {
+		
 		// 1. step: Login Operation
 		
 		HttpResponse resp = handlerGet(getBasicURI(), getBaseHeader());
@@ -90,32 +103,85 @@ public class UCDisk extends AbstractWebsite{
 			return;
 		}
 		
-		// 3. step: try to get "yunsess" value after the getting of service ticket
-		
-		
-		
+		// 3. step: try to get and "yunsess" value after the getting of service ticket
 		resp = handlerGet(getYunsessURI(), null);
 		
-//		URI secondURI = null;
-//		
-//		try {
-//			secondURI = new URI(link);
-//		} catch (URISyntaxException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		if( null == secondURI )
-//		{
-//			log.log("Cannot create URI object from the return Link: " + link, Log.LEVEL_ERROR);
-//			
-//			return;
-//		}
-//		
-//		resp = handlerGet(secondURI, null);
-//		
-//		printContent( resp, true );
+		addCookies(CookieHandler.INSTANCE.saveCookies(resp, NAME, false));
+		
+		PersisCookie yunsess = null;
+		
+		if( (yunsess = getCookie("yunsess")) != null )
+		{
+			log.log("Success to get yunsess: " + yunsess.toString(), Log.LEVEL_INFO);
+		}else
+		{
+			log.log("Failed to get yunsess", Log.LEVEL_ERROR);
+			return;
+		}
+		
+		// 4. step: try to get dir id
+		resp = handlerGet(getDiskURI(), null);
+		
+		respContent = printResponseContent( resp, false );
+		
+		List<String> dirs = parserDIRs(respContent);
+		
+		if( null == dirs || dirs.isEmpty() )
+		{
+			log.log("Cannot find Dir ID", Log.LEVEL_ERROR);
+			return;
+		}
+		
+		if( dirs.size() != 1 )
+		{
+			log.log("find more than one dir number", Log.LEVEL_WARN);
+		}
+		
+		// 5. step: try to get file list
+		String dir = dirs.get(0);
+		
+		resp = handlerGet(getFileListURI(dir), null);
+		
+		respContent = printResponseContent( resp, true );
+		
 	}
 	
+	private List<String> parserDIRs(final String respContent) 
+	{
+		if( null == respContent || respContent.isEmpty() )
+		{
+			return null;
+		}
+		
+		Document doc = Utils.getHTMLDocument(respContent);
+		
+		Elements hrefs = doc.select("a[href]");
+		
+		if( null == hrefs || hrefs.size() <= 0 )
+		{
+			return null;
+		}
+		
+		List<String> result = new ArrayList<String>();
+		
+		for( Element e : hrefs )
+		{
+			String value = e.attr("dirid");
+			
+			if( null == value || value.isEmpty() )
+			{
+				continue;
+			}
+			
+			if( !result.contains(value))
+			{
+				result.add(value);
+			}
+		}
+		
+		return result;
+	}
+
 	private URI getYunsessURI()
 	{
 		try {
@@ -124,6 +190,34 @@ public class UCDisk extends AbstractWebsite{
 						.setHost("yun.uc.cn")
 						.setPath("/exter/basicinfo")
 						.addParameter("service_ticket", service_ticket).build();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private URI getFileListURI(final String dir)
+	{
+		try {
+			return new URIBuilder()
+						.setScheme("http")
+						.setHost("disk.yun.uc.cn")
+						.setPath("/netdisk/ajaxnd")
+						.addParameter("dirid", dir).build();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	private URI getDiskURI()
+	{
+		try {
+			return new URIBuilder()
+						.setScheme("http")
+						.setHost("disk.yun.uc.cn").build();
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
@@ -223,4 +317,5 @@ public class UCDisk extends AbstractWebsite{
 		
 		return ((JSONObject)jo.get("data")).getString("service_ticket");
 	}
+	
 }

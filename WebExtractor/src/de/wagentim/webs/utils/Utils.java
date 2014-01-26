@@ -176,12 +176,7 @@ public final class Utils {
     	
     	Document d = null;
 		
-		try {
-			d = Jsoup.connect(input).get();
-		} catch (IOException e) {
-			d = null;
-			e.printStackTrace();
-		}
+		d = Jsoup.parse(input);
 		
 		return d;
     }

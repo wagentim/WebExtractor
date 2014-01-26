@@ -82,6 +82,7 @@ public abstract class AbstractWebsite implements Website {
 		for(Header header : headers)
 		{
 			request.addHeader(header);
+			log.log("Add Header: " + header.toString(), Log.LEVEL_INFO);
 		}
 	}
 	
@@ -216,7 +217,15 @@ public abstract class AbstractWebsite implements Website {
 	{
 		if( null == cookie )
 		{
-			
+			return;
 		}
+		
+		cookies.put(cookie.getKey(), cookie);
+		log.log("Save Cookie: " + cookie.toString(), Log.LEVEL_INFO);
+	}
+	
+	protected PersisCookie getCookie(final String key)
+	{
+		return cookies.get(key);
 	}
 }
