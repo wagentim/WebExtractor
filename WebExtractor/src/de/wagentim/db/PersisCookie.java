@@ -109,5 +109,11 @@ public class PersisCookie {
 			noValue.add(name);
 		}
 	}
+	
+	@Override
+	public String toString()
+	{
+		return getKey() + "=" + getValue();
+	}
 
 }

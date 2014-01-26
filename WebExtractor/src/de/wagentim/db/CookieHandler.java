@@ -1,5 +1,6 @@
 package de.wagentim.db;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -7,9 +8,15 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
 
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.cookie.ClientCookie;
 
+import de.wagentim.qlogger.channel.DefaultChannel;
+import de.wagentim.qlogger.channel.LogChannel;
+import de.wagentim.qlogger.logger.Log;
+import de.wagentim.qlogger.service.QLoggerService;
 import de.wagentim.webs.utils.TextUtils;
 import de.wagentim.webs.utils.Utils;
 
@@ -21,17 +28,63 @@ import de.wagentim.webs.utils.Utils;
  */
 public class CookieHandler {
 	
-	private static EntityManagerFactory factory;
-	private static EntityManager em;
+	public static final CookieHandler INSTANCE = new CookieHandler();
+	private final EntityManagerFactory factory;
+	private final EntityManager em;
 	private static final String DB_NAME = "./db/cookies.odb";
+	private final LogChannel log;
+	private static final String KEY_COOKIE = "Set-Cookie";
 	
-	static{
-		
+	private CookieHandler()
+	{
 		factory = Persistence.createEntityManagerFactory(DB_NAME);
 		em = factory.createEntityManager();
+		int logID = QLoggerService.addChannel(new DefaultChannel("CookieHandler"));
+		log = QLoggerService.getChannel(logID);
 	}
 	
-	public static PersisCookie saveCookiesToDB(String value, String webName)
+	/**
+	 * Parser Cookies from Response Header and pack then to <code>PersisCookie</code> object. As wishes, the Cookie can also be saved in DB
+	 * 
+	 * @param response
+	 * @param webName
+	 * @param toDB
+	 * @return
+	 */
+	public List<PersisCookie> saveCookies(final HttpResponse response, String webName, boolean toDB)
+	{
+		if( null == response )
+		{
+			return null;
+		}
+		
+		Header[] headers = response.getAllHeaders();
+		
+		if( null == headers || headers.length < 0 )
+		{
+			log.log(webName + ": Cannot get headers from the response!", Log.LEVEL_ERROR);
+			return null;
+		}
+		
+		List<PersisCookie> result = new ArrayList<PersisCookie>();
+		
+		for( Header h : headers )
+		{
+			if( KEY_COOKIE.equals(h.getName()))
+			{
+				result.add(saveCookies(h.getValue(), webName, toDB));
+			}
+		}
+		
+		if( !result.isEmpty() )
+		{
+			return result;
+		}
+		
+		return null;
+	}
+	
+	public PersisCookie saveCookies(String value, String webName, boolean toDB)
 	{
 		List<NameValuePair> result = Utils.parserCookie(value);
 		
@@ -52,7 +105,7 @@ public class CookieHandler {
 				cookie.setWebName(webName);
 			}else
 			{
-				String name = nvp.getName().toLowerCase();
+				String name = nvp.getName();
 				String val = nvp.getValue();
 				
 				if( name.equals(ClientCookie.VERSION_ATTR ))
@@ -76,14 +129,17 @@ public class CookieHandler {
 			index++;
 		}
 		
-		em.getTransaction().begin();
-		em.persist(cookie);
-		em.getTransaction().commit();
+		if( toDB )
+		{
+			em.getTransaction().begin();
+			em.persist(cookie);
+			em.getTransaction().commit();
+		}
 		
 		return cookie;
 	}
 	
-	public static List<PersisCookie> getCookiesFromDB(final String identification)
+	public List<PersisCookie> getCookiesFromDB(final String identification)
 	{
 		if( null == identification || identification.isEmpty() )
 		{
@@ -95,7 +151,7 @@ public class CookieHandler {
 		return query.getResultList();
 	}
 	
-	public static void close()
+	public void close()
 	{
 		em.close();
 		factory.close();

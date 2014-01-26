@@ -1,6 +1,5 @@
 package de.wagentim.webs.utils;
 
-import java.awt.TexturePaint;
 
 public final class TextUtils {
 	

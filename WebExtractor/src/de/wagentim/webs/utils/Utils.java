@@ -7,7 +7,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.Inflater;
@@ -15,8 +17,17 @@ import java.util.zip.InflaterInputStream;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+import de.wagentim.qlogger.channel.DefaultChannel;
+import de.wagentim.qlogger.channel.LogChannel;
+import de.wagentim.qlogger.logger.Log;
+import de.wagentim.qlogger.service.QLoggerService;
 
 public final class Utils {
+	
+	private static LogChannel log = QLoggerService.getChannel(QLoggerService.addChannel(new DefaultChannel("Utils")));
 
 	public static String handleCharCoding(final URL url, final String charCode) {
 
@@ -131,15 +142,76 @@ public final class Utils {
     		
     		BasicNameValuePair unit = null;
     		
-    		if( index < 0 )
+    		if( index > 0 )
     		{
-    			unit = new BasicNameValuePair(pair.trim(), "");
+    			String name = pair.substring(0, index).trim();
+    			String val = pair.substring(index + 1, pair.length()).trim();
+    			
+    			if( null != name && null != val && !name.isEmpty() && !val.isEmpty() )
+    			{
+    				unit = new BasicNameValuePair(name, val);
+    			}
     		}else
     		{
-    			unit = new BasicNameValuePair(pair.substring(0, index).trim(), pair.substring(index + 1, pair.length()));
+    			unit = new BasicNameValuePair(pair, "");
+    		}
+    		
+    		if( null == unit )
+    		{
+    			continue;
     		}
     		
     		result.add(unit);
+    	}
+    	
+    	return result;
+    }
+    
+    public static Document getHTMLDocument(final String input)
+    {
+    	if( null == input || input.isEmpty() )
+    	{
+    		return null;
+    	}
+    	
+    	Document d = null;
+		
+		try {
+			d = Jsoup.connect(input).get();
+		} catch (IOException e) {
+			d = null;
+			e.printStackTrace();
+		}
+		
+		return d;
+    }
+    
+    public static Map<String, String> getRequestParameters(final String input)
+    {
+    	if( null == input || input.isEmpty() )
+    	{
+    		return null;
+    	}
+    	
+    	int qMark = input.indexOf("?");
+    	
+    	if( qMark < 0 )
+    	{
+    		log.log("Cannot find ? Mark in the input text: " + input, Log.LEVEL_ERROR);
+    		return null;
+    	}
+    	
+    	Map<String, String> result = new HashMap<String, String>();
+
+    	StringTokenizer st = new StringTokenizer(input.substring(qMark), "&");
+    	
+    	while( st.hasMoreElements() )
+    	{
+    		String tmp = st.nextToken();
+    		
+    		qMark = tmp.indexOf("=");
+    		
+    		result.put(tmp.substring(0, qMark), tmp.substring(qMark, tmp.length()));
     	}
     	
     	return result;

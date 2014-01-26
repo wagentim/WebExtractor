@@ -1,7 +1,12 @@
 package de.wagentim.connect;
 
+import java.io.IOException;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -22,9 +27,9 @@ public class ConnectManager {
 					.build();
 	}
 	
-	public static CloseableHttpClient getClient()
+	public static HttpResponse sendRequest(final HttpRequestBase request, final Object object) throws ClientProtocolException, IOException
 	{
-		return client;
+		return client.execute(request);
 	}
 	
 }
