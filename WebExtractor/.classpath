@@ -12,5 +12,6 @@
 	<classpathentry kind="lib" path="libs/commons-logging-1.1.3.jar"/>
 	<classpathentry kind="lib" path="libs/objectdb.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/QuickLogger"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/FileDownloader"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

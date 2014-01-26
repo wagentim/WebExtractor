@@ -1,19 +1,13 @@
 package de.wagentim.webs.utils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -28,100 +22,6 @@ import de.wagentim.qlogger.service.QLoggerService;
 public final class Utils {
 	
 	private static LogChannel log = QLoggerService.getChannel(QLoggerService.addChannel(new DefaultChannel("Utils")));
-
-	public static String handleCharCoding(final URL url, final String charCode) {
-
-		InputStream inStr = null;
-
-		if (null == url) {
-			return null;
-		}
-
-		HttpURLConnection conn = null;
-
-		try {
-
-			conn = (HttpURLConnection) url.openConnection();
-
-		} catch (IOException e) {
-
-			conn = null;
-		}
-
-		if (null == conn) {
-
-			return null;
-		}
-
-		HttpURLConnection.setFollowRedirects(true);
-
-		StringBuffer buffer = new StringBuffer();
-
-		String encoding = conn.getContentEncoding();
-
-		try {
-			if (encoding != null && encoding.equalsIgnoreCase("gzip")) {
-				inStr = new GZIPInputStream(conn.getInputStream());
-			} else if (encoding != null && encoding.equalsIgnoreCase("deflate")) {
-				inStr = new InflaterInputStream(conn.getInputStream(),
-						new Inflater(true));
-			} else {
-				inStr = conn.getInputStream();
-			}
-
-			int ptr = 0;
-
-			InputStreamReader inStrReader = new InputStreamReader(inStr,
-					Charset.forName(charCode));
-
-			while ((ptr = inStrReader.read()) != -1) {
-				buffer.append((char) ptr);
-			}
-			inStrReader.close();
-
-			conn.disconnect();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (inStr != null)
-			{
-				try {
-					inStr.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		return buffer.toString();
-
-	}
-	
-	public static String encode(String input) {
-        StringBuilder resultStr = new StringBuilder();
-        for (char ch : input.toCharArray()) {
-            if (isUnsafe(ch)) {
-                resultStr.append('%');
-                resultStr.append(toHex(ch / 16));
-                resultStr.append(toHex(ch % 16));
-            } else {
-                resultStr.append(ch);
-            }
-        }
-        return resultStr.toString();
-    }
-
-    private static char toHex(int ch) {
-        return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
-    }
-
-    private static boolean isUnsafe(char ch) {
-        if (ch > 128 || ch < 0)
-            return true;
-        return " %$&+,/:;=?@<>#%".indexOf(ch) >= 0;
-    }
     
     public static List<NameValuePair> parserCookie(String value)
     {
@@ -211,5 +111,40 @@ public final class Utils {
     	
     	return result;
     }
+    
+    public static String decode( final String input )
+    {
+    	if( null == input || input.isEmpty() )
+    	{
+    		return null;
+    	}
+    	
+    	String result = null;
+    	
+    	try {
+			result = URLDecoder.decode(input, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+    	
+    	return result;
+    }
 	
+    public static String encode( final String input )
+    {
+    	if( null == input || input.isEmpty() )
+    	{
+    		return null;
+    	}
+    	
+    	String result = null;
+    	
+    	try {
+			result = URLEncoder.encode(input, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+    	
+    	return result;
+    }
 }

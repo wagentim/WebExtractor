@@ -1,9 +1,7 @@
 package de.wagentim.webs.download;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +9,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicHeader;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,6 +17,7 @@ import org.jsoup.select.Elements;
 
 import de.wagentim.db.CookieHandler;
 import de.wagentim.db.PersisCookie;
+import de.wagentim.element.DownloadFile;
 import de.wagentim.qlogger.logger.Log;
 import de.wagentim.webs.utils.Utils;
 
@@ -90,11 +90,7 @@ public class UCDisk extends AbstractWebsite{
 			return;
 		}
 		
-		try {
-			service_ticket = getServiceTicket( URLDecoder.decode(link, "utf-8") );
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		service_ticket = getServiceTicket( Utils.decode(link) );
 		
 		
 		if( null == service_ticket || service_ticket.isEmpty() )
@@ -142,10 +138,70 @@ public class UCDisk extends AbstractWebsite{
 		
 		resp = handlerGet(getFileListURI(dir), null);
 		
-		respContent = printResponseContent( resp, true );
+		respContent = printResponseContent( resp, false );
 		
+		List<DownloadFile> files = getDownloadFiles(respContent);
+		
+		if( null == files || files.isEmpty() )
+		{
+			log.log("No File is parsered", Log.LEVEL_ERROR);
+			
+			return;
+		}
+		
+		for( DownloadFile f : files )
+		{
+			if( getDownloadKey(f) )
+			{
+				// TODO pass the DownloadFile object to download handler
+			}else
+			{
+				log.log("Failed to get real donwload link for the file" + f.getName(), Log.LEVEL_CRITICAL_ERROR);
+				continue;
+			}
+		}
+		
+		// download the file
 	}
 	
+	private boolean getDownloadKey(DownloadFile f) {
+		
+		if( null == f )
+		{
+			return false;
+		}
+		
+		URI uri = null;
+		
+		try {
+			uri = new URI(f.getDonwloadURL());
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		
+		HttpResponse resp = handlerGet(uri, null);
+		
+		if( null == resp )
+		{
+			log.log("For getting dl_key the response is null", Log.LEVEL_ERROR);
+			return false;
+		}
+		
+		Header[] headers = resp.getAllHeaders();
+		
+		for(Header h : headers)
+		{
+			if( h.getName().equals("Location") )
+			{
+				f.setDonwloadURL(h.getValue());
+				return true;
+				//TODO also save the expire data for this download.In case of starting broken download or download it later
+			}
+		}
+		
+		return false;
+	}
+
 	private List<String> parserDIRs(final String respContent) 
 	{
 		if( null == respContent || respContent.isEmpty() )
@@ -316,6 +372,49 @@ public class UCDisk extends AbstractWebsite{
 		JSONObject jo = new JSONObject(result);
 		
 		return ((JSONObject)jo.get("data")).getString("service_ticket");
+	}
+	
+	private List<DownloadFile> getDownloadFiles(final String input)
+	{
+		if( null == input || input.isEmpty() )
+		{
+			return null;
+		}
+		
+		JSONObject tmp = new JSONObject(input);
+
+		JSONArray array = tmp.getJSONArray("filelist");
+		
+		if( null == array || array.length() < 0 )
+		{
+			return null;
+		}
+		
+		List<DownloadFile> result = new ArrayList<DownloadFile>();
+		
+		for( int i = 0 ; i < array.length(); i++)
+		{
+			JSONObject o = array.getJSONObject(i);
+			
+			if( null == o )
+			{
+				continue;
+			}
+			
+			result.add(assignValues(o));
+		}
+		
+		return result;
+	}
+
+	private DownloadFile assignValues(final JSONObject o) {
+		
+		DownloadFile f = new DownloadFile();
+		
+		f.setDonwloadURL(o.getString("download"));
+		f.setName(o.getString("name"));
+		
+		return f;
 	}
 	
 }

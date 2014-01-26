@@ -105,7 +105,7 @@ public abstract class AbstractWebsite implements Website {
 		return false;
 	}
 	
-	protected HttpResponse handlerGet(final URI uri, Header[] headers)
+	protected HttpRequestBase getHttpGet(final URI uri, Header[] headers)
 	{
 		log.log("Request URI: " + uri.toString(), Log.LEVEL_INFO);
 		
@@ -120,6 +120,13 @@ public abstract class AbstractWebsite implements Website {
 		get.setURI(uri);
 		
 		addRequestHeaders(get, headers);
+		
+		return get;
+	}
+	
+	protected HttpResponse handlerGet(final URI uri, Header[] headers)
+	{
+		HttpRequestBase get = getHttpGet(uri, headers);
 		
 		HttpResponse response = null;
 		
