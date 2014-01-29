@@ -97,11 +97,12 @@ public abstract class AbstractWebsite implements Website {
 		
 		int code = response.getStatusLine().getStatusCode();
 		
-		if( code == HttpStatus.SC_OK )
+		if( code == HttpStatus.SC_OK || code == HttpStatus.SC_MOVED_TEMPORARILY )
 		{
 			return true;
 		}
 		
+		log.log("Get Error Code: " + code, Log.LEVEL_ERROR);
 		return false;
 	}
 	

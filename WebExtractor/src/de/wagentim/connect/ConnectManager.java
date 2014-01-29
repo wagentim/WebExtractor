@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -23,6 +24,7 @@ public class ConnectManager {
 		globalConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
 		client = HttpClients.custom()
 					.setConnectionManager(manager)
+					.disableRedirectHandling()
 					.setDefaultRequestConfig(globalConfig)
 					.build();
 	}
@@ -32,4 +34,8 @@ public class ConnectManager {
 		return client.execute(request);
 	}
 	
+	public static CloseableHttpClient getClient()
+	{
+		return client;
+	}
 }

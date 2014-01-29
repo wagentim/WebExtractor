@@ -153,6 +153,7 @@ public class UCDisk extends AbstractWebsite{
 		{
 			if( getDownloadKey(f) )
 			{
+				log.log("Download Link: " + f.getDonwloadURL(), Log.LEVEL_INFO);
 				// TODO pass the DownloadFile object to download handler
 			}else
 			{
@@ -179,7 +180,10 @@ public class UCDisk extends AbstractWebsite{
 			e.printStackTrace();
 		}
 		
-		HttpResponse resp = handlerGet(uri, null);
+		clearCookie();
+		Header[] headers = new Header[]{new BasicHeader("Host", "wwww.downmyneed.com"), new BasicHeader("Referer", "http://disk.yun.uc.cn/netdisk/index?channel_id=103")};
+		
+		HttpResponse resp = handlerGet(uri, headers);
 		
 		if( null == resp )
 		{
@@ -187,7 +191,7 @@ public class UCDisk extends AbstractWebsite{
 			return false;
 		}
 		
-		Header[] headers = resp.getAllHeaders();
+		headers = resp.getAllHeaders();
 		
 		for(Header h : headers)
 		{
